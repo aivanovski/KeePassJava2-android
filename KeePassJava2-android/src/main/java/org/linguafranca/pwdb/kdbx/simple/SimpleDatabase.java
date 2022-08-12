@@ -114,8 +114,13 @@ public class SimpleDatabase extends AbstractDatabase<SimpleDatabase, SimpleGroup
         UUID recycleBinUuid = this.keePassFile.meta.recycleBinUUID;
         SimpleGroup g = findGroup(recycleBinUuid);
         if (g == null && isRecycleBinEnabled()) {
-            g = newGroup("Recycle Bin");
-            getRootGroup().addGroup(g);
+            List<? extends SimpleGroup> recycleBinCandidates = getRootGroup().findGroups("Recycle Bin");
+            if (recycleBinCandidates.size() > 0) {
+                g = recycleBinCandidates.get(0);
+            } else {
+                g = newGroup("Recycle Bin");
+                getRootGroup().addGroup(g);
+            }
             this.keePassFile.meta.recycleBinUUID = g.getUuid();
             this.keePassFile.meta.recycleBinChanged = new Date();
         }
@@ -294,7 +299,7 @@ public class SimpleDatabase extends AbstractDatabase<SimpleDatabase, SimpleGroup
         }
         for (SimpleEntry entry: parent.entry) {
             for (EntryClasses.StringProperty property : entry.string) {
-                boolean shouldProtect = parent.database.shouldProtect(property.getKey());
+                boolean shouldProtect = parent.database.shouldProtect(property.getKey()) || property.getValue().isProtected();
                 property.getValue().setProtected(shouldProtect);
             }
         }
