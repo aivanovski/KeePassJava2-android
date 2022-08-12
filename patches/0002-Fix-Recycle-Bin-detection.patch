@@ -1,0 +1,32 @@
+From 4a9e3f1f043e09ba1e0b8c60d2f850b9b2dd3904 Mon Sep 17 00:00:00 2001
+From: Aleksey Ivanovsky <alexei.ivanovski@gmail.com>
+Date: Fri, 12 Aug 2022 19:42:11 +0200
+Subject: [PATCH] Fix "Recycle Bin" detection
+
+---
+ .../linguafranca/pwdb/kdbx/simple/SimpleDatabase.java    | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/KeePassJava2-android/src/main/java/org/linguafranca/pwdb/kdbx/simple/SimpleDatabase.java b/KeePassJava2-android/src/main/java/org/linguafranca/pwdb/kdbx/simple/SimpleDatabase.java
+index fbb83df..358cefc 100644
+--- a/KeePassJava2-android/src/main/java/org/linguafranca/pwdb/kdbx/simple/SimpleDatabase.java
++++ b/KeePassJava2-android/src/main/java/org/linguafranca/pwdb/kdbx/simple/SimpleDatabase.java
+@@ -114,8 +114,13 @@ public class SimpleDatabase extends AbstractDatabase<SimpleDatabase, SimpleGroup
+         UUID recycleBinUuid = this.keePassFile.meta.recycleBinUUID;
+         SimpleGroup g = findGroup(recycleBinUuid);
+         if (g == null && isRecycleBinEnabled()) {
+-            g = newGroup("Recycle Bin");
+-            getRootGroup().addGroup(g);
++            List<? extends SimpleGroup> recycleBinCandidates = getRootGroup().findGroups("Recycle Bin");
++            if (recycleBinCandidates.size() > 0) {
++                g = recycleBinCandidates.get(0);
++            } else {
++                g = newGroup("Recycle Bin");
++                getRootGroup().addGroup(g);
++            }
+             this.keePassFile.meta.recycleBinUUID = g.getUuid();
+             this.keePassFile.meta.recycleBinChanged = new Date();
+         }
+-- 
+2.37.1
+
