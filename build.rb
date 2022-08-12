@@ -2,9 +2,9 @@
 
 KEEPASS_JAVA_URL = 'https://github.com/jorabin/KeePassJava2.git'.freeze
 
-PATCH1 = '/keepassjava2-patches/0001-replace-apache-codecs.patch'.freeze
-PATCH2 = '/keepassjava2-patches/0002-protected-properties.patch'.freeze
-PATCH3 = '/keepassjava2-patches/0003-fix-recycle-bin-detection.patch'.freeze
+PATCH1 = '/patches/0001-Fix-Base64-imports.patch'.freeze
+PATCH2 = '/patches/0002-Fix-Recycle-Bin-detection.patch'.freeze
+PATCH3 = '/patches/0003-Implement-protected-properties.patch'.freeze
 
 SUCCESS = 'success'.freeze
 FAILURE = 'failure'.freeze
@@ -20,19 +20,15 @@ def read_current_path
   current_path
 end
 
-def is_directory_exist(path)
+def directory_exist?(path)
   `[ -d #{path} ] && echo #{SUCCESS} || echo #{FAILURE}`.strip == SUCCESS
-end
-
-def is_file_exist(path)
-  `[ -f #{path} ] && echo #{SUCCESS} || echo #{FAILURE}`.strip == SUCCESS
 end
 
 def clone_keepass_java_project
   path = "#{read_current_path}/tmp/KeePassJava2"
-  already_cloned = is_directory_exist(path)
+  already_cloned = directory_exist?(path)
 
-  if already_cloned == false
+  if !already_cloned
     `git clone #{KEEPASS_JAVA_URL} "#{path}"`
   end
 
@@ -81,8 +77,9 @@ def apply_patch(patc_file_path)
   end
 end
 
-def build_library(library_module_name, flavor, library_file_path)
-  command = "./gradlew :libs:#{library_module_name}:assemble#{flavor}"
+def build_library(flavor, library_file_path)
+  command = "./gradlew :KeePassJava2-android:assemble#{flavor}"
+  library_module_name = "KeePassJava2-android:#{flavor}"
 
   puts "Assembling library: #{library_module_name}"
   puts "   executed command: #{command}"
@@ -112,37 +109,16 @@ def main
   copy_sources("#{keepass_java_path}/kdbx/src/main/java/", "#{current_path}/KeePassJava2-android/src/main")
   copy_sources("#{keepass_java_path}/kdb/src/main/java/", "#{current_path}/KeePassJava2-android/src/main")
 
-#   # apply pathces
-#   apply_patch("#{current_path + PATCH1}")
-#   apply_patch("#{current_path + PATCH2}")
-#   apply_patch("#{current_path + PATCH3}")
-#
-#   # build Release libraries
-#   database_aar_release = "#{current_path}/libs/KeePassJava2-database/build/outputs/aar/KeePassJava2-database-release.aar"
-#   simple_aar_release = "#{current_path}/libs/KeePassJava2-simple/build/outputs/aar/KeePassJava2-simple-release.aar"
-#   kdbx_aar_release = "#{current_path}/libs/KeePassJava2-kdbx/build/outputs/aar/KeePassJava2-kdbx-release.aar"
-#   build_library('KeePassJava2-database', 'Release', database_aar_release)
-#   build_library('KeePassJava2-simple', 'Release', simple_aar_release)
-#   build_library('KeePassJava2-kdbx', 'Release', kdbx_aar_release)
-#
-#   # build Debug libraries
-#   database_aar_debug = "#{current_path}/libs/KeePassJava2-database/build/outputs/aar/KeePassJava2-database-debug.aar"
-#   simple_aar_debug = "#{current_path}/libs/KeePassJava2-simple/build/outputs/aar/KeePassJava2-simple-debug.aar"
-#   kdbx_aar_debug = "#{current_path}/libs/KeePassJava2-kdbx/build/outputs/aar/KeePassJava2-kdbx-debug.aar"
-#   build_library('KeePassJava2-database', 'Debug', database_aar_debug)
-#   build_library('KeePassJava2-simple', 'Debug', simple_aar_debug)
-#   build_library('KeePassJava2-kdbx', 'Debug', kdbx_aar_debug)
-#
-#   # copy assembled libraries to main project
-#   libs_path = "#{current_path}/app/libs"
-#   `cp -rf "#{database_aar_release}" "#{libs_path}"`
-#   `cp -rf "#{database_aar_debug}" "#{libs_path}"`
-#
-#   `cp -rf "#{simple_aar_release}" "#{libs_path}"`
-#   `cp -rf "#{simple_aar_debug}" "#{libs_path}"`
-#
-#   `cp -rf "#{kdbx_aar_release}" "#{libs_path}"`
-#   `cp -rf "#{kdbx_aar_debug}" "#{libs_path}"`
+  # apply pathces
+  apply_patch(current_path + PATCH1)
+  apply_patch(current_path + PATCH2)
+  apply_patch(current_path + PATCH3)
+
+  # build library
+  aar_debug_path = "#{current_path}/KeePassJava2-android/build/outputs/aar/KeePassJava2-android-debug.aar"
+  aar_release_path = "#{current_path}/KeePassJava2-android/build/outputs/aar/KeePassJava2-android-release.aar"
+  build_library('Debug', aar_debug_path)
+  build_library('Release', aar_release_path)
 
   puts 'SUCCESS'
 end
